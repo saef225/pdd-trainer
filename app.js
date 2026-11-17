@@ -16,11 +16,11 @@
     set(k, v) { try { localStorage.setItem('pdd_' + k, JSON.stringify(v)); } catch (e) { /* нет места/запрещено */ } },
     del(k) { try { localStorage.removeItem('pdd_' + k); } catch (e) {} }
   };
-  let settings = Object.assign({ name: '', url: '', auto: true, instant: true }, store.get('settings', {}));
+  let settings = Object.assign({ name: '', auto: true, instant: true }, store.get('settings', {}));
   let session = store.get('session', null);   // текущая попытка (переживает перезагрузку)
   const CFG = Object.assign({ scriptUrl: '' }, window.PDD_CONFIG || {});
-  // своя таблица из настроек, иначе — общая таблица по умолчанию из config.js
-  const tableUrl = () => settings.url || CFG.scriptUrl;
+  // общая таблица для всех из config.js
+  const tableUrl = () => CFG.scriptUrl;
 
   // ---------- утилиты ----------
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -93,8 +93,7 @@
         <button class="primary" data-act="resume">Продолжить</button><button class="ghost" data-act="finish">Завершить и сохранить</button><button class="ghost" data-act="drop">Сбросить</button></div>`;
     }
     if (!tableUrl()) {
-      html += `<div class="card" style="border-color:var(--skip)"><b>Google Таблица не подключена.</b> Результаты сохраняются только в этом браузере.
-        <span class="muted">Откройте «⚙ Настройки» и вставьте URL веб-приложения (инструкция в папке google-apps-script).</span></div>`;
+      html += `<div class="card" style="border-color:var(--skip)"><b>Google Таблица не подключена.</b> Результаты сохраняются только в этом браузере.</div>`;
     }
     if (queue.length) {
       html += `<div class="card row"><div class="grow">Не отправлено в таблицу: <b>${queue.length}</b> попыт${queue.length === 1 ? 'ка' : 'ки/ок'}</div><button class="ghost" data-act="flush">Отправить сейчас</button></div>`;
@@ -272,7 +271,7 @@
         ${res.ticket ? `<button class="ghost" data-res="again">Пройти билет заново</button>` : ''}
         <button class="ghost" data-act="toHome">На главную</button>
       </div>
-      <p class="hint" id="resSent">${res.sent ? 'Записано в таблицу ✓' : (tableUrl() ? '' : 'Таблица не подключена — откройте Настройки.')}</p>
+      <p class="hint" id="resSent">${res.sent ? 'Записано в таблицу ✓' : (tableUrl() ? '' : 'Таблица не подключена.')}</p>
     </div>
     <div class="card"><h2>${misses.length ? 'Ошибки и пропуски — что повторить' : 'Без ошибок 🎉'}</h2>
       ${misses.map(x => { const q = byKey[x.k]; return `<div class="miss ${x.status === 'пропущен' ? 'skip' : ''}">
@@ -333,7 +332,7 @@
   }
 
   async function send(res) {
-    if (!tableUrl()) { toast('Сначала укажите URL в Настройках'); openSettings(); return; }
+    if (!tableUrl()) { toast('Таблица не подключена'); return; }
     setStatus('Отправка…');
     try {
       await post(payload(res));
@@ -360,31 +359,22 @@
   const dlg = document.getElementById('settingsDlg');
   function openSettings() {
     document.getElementById('setName').value = settings.name;
-    document.getElementById('setUrl').value = settings.url;
     document.getElementById('setAuto').checked = settings.auto;
     document.getElementById('setInstant').checked = settings.instant;
     dlg.showModal();
   }
   function readSettingsForm() {
-    return { name: document.getElementById('setName').value.trim(), url: document.getElementById('setUrl').value.trim(),
-      auto: document.getElementById('setAuto').checked, instant: document.getElementById('setInstant').checked };
+    return { name: document.getElementById('setName').value.trim(), auto: document.getElementById('setAuto').checked, instant: document.getElementById('setInstant').checked };
   }
   dlg.addEventListener('close', () => {
     if (dlg.returnValue !== 'ok') return;
     const f = readSettingsForm();
-    if (!f.name && !f.url && CFG.scriptUrl) { toast('Введите имя — таблица общая для всех'); setTimeout(openSettings, 0); return; }
-    if (f.url && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(f.url)) { toast('Нужна ссылка вида https://script.google.com/macros/s/…/exec (из «Развертывания»)'); return; }
+    if (!f.name && CFG.scriptUrl) { toast('Введите имя — таблица общая для всех'); setTimeout(openSettings, 0); return; }
     settings = f; store.set('settings', settings); toast('Сохранено');
     const onResult = !session && $app._res && document.getElementById('resSent');
     if (onResult) { const r = $app._res; renderResult(r); if (tableUrl() && !r.sent) send(r); else flushQueue(); return; }
     flushQueue();
     session ? renderQuiz() : renderHome();
-  });
-  document.getElementById('testSend').addEventListener('click', async () => {
-    const f = readSettingsForm(); f.url = f.url || CFG.scriptUrl; if (!f.url) return toast('Вставьте URL');
-    try { await fetch(f.url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ type: 'ping', name: f.name || 'Без имени', date: new Date().toISOString() }) });
-      toast('Запрос отправлен — проверьте лист «Журнал» в таблице'); }
-    catch (e) { toast('Ошибка сети: ' + e.message); }
   });
 
   // ---------- события ----------

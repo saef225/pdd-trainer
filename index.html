@@ -23,14 +23,10 @@
     <label>Ваше имя (попадёт в таблицу)
       <input id="setName" type="text" placeholder="Например, Иван" maxlength="60">
     </label>
-    <label>Своя Google Таблица (необязательно)
-      <input id="setUrl" type="url" placeholder="Пусто — пишем в общую таблицу">
-    </label>
     <label class="check"><input id="setAuto" type="checkbox"> Отправлять результат в таблицу автоматически</label>
     <label class="check"><input id="setInstant" type="checkbox" checked> Показывать правильный ответ сразу</label>
-    <p class="hint">По умолчанию результаты всех пользователей пишутся в одну общую таблицу. Свою можно подключить по инструкции в репозитории (папка google-apps-script).</p>
+    <p class="hint">Результаты всех пользователей пишутся в одну общую Google Таблицу.</p>
     <div class="row">
-      <button type="button" class="ghost" id="testSend">Проверить связь</button>
       <span class="grow"></span>
       <button value="cancel" class="ghost">Отмена</button>
       <button value="ok" id="saveSettings" class="primary">Сохранить</button>
