@@ -4,11 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Билеты ПДД — тренажёр</title>
-<link rel="stylesheet" href="style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 <header class="top">
-  <button class="brand" id="homeBtn" title="На главную">ПДД <span>800 вопросов · категория A, B</span></button>
+  <button class="brand" id="homeBtn" title="На главную"><i class="logo" aria-hidden="true">!</i><b>Билеты ПДД</b><span>800 вопросов · A, B</span></button>
   <div class="top-right">
     <span id="sendStatus" class="send-status"></span>
     <button class="ghost" id="settingsBtn">⚙ Настройки</button>
@@ -36,8 +39,8 @@
 
 <div id="toast" class="toast"></div>
 
-<script src="config.js"></script>
+<script src="config.js?v=2"></script>
 <script src="data/questions.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

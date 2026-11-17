@@ -24,6 +24,13 @@
 
   // ---------- утилиты ----------
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  // «…текст.(Пункт 1.2 ПДД)» → основной текст + отдельная строка со ссылкой на правила
+  function tipParts(tip) {
+    tip = tip.replace(/([а-яё.,])(Пункт|Раздел|Приложение)/g, '$1 $2');
+    const m = tip.match(/^([\s\S]*?)\s*\(((?:[^()]|\([^()]*\))*)\)\.?\s*$/);
+    return m && m[1].length > 20 ? [m[1].trim(), m[2].trim()] : [tip, ''];
+  }
+  const tipHtml = (tip, f = esc) => { const [b, src] = tipParts(tip); return `<p>${f(b)}</p>${src ? `<p class="src">${f(src)}</p>` : ''}`; };
   const fmtDate = d => new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   const fmtDur = s => { s = Math.round(s); const m = Math.floor(s / 60); return m ? `${m} мин ${s % 60} с` : `${s} с`; };
   const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -77,7 +84,7 @@
 
   // ---------- главная ----------
   function renderHome() {
-    $app._res = null;
+    $app._res = null; $app.classList.remove('quiz');
     session && Object.keys(session.answers).length === 0 && (session = null, store.del('session'));
     const ts = ticketStats();
     const passed = Object.values(ts).filter(x => x.errors <= 2).length;
@@ -155,7 +162,7 @@
       found.slice(0, 40).map(q => `<div class="item"><span class="tag">Б${q.t} · В${q.n}</span>${q.topic.map(x => `<span class="tag">${esc(x)}</span>`).join('')}
         <div class="q"><b>${hl(q.q)}</b></div>
         <div class="right" style="color:var(--ok)">✓ ${hl(q.a[q.c])}</div>
-        <details><summary class="hint">Пояснение</summary><div class="tip">${hl(q.tip)}</div></details></div>`).join('') +
+        <details><summary>Пояснение</summary><div class="tip">${tipHtml(q.tip, hl)}</div></details></div>`).join('') +
       (found.length > 40 ? `<p class="hint">Показаны первые 40.</p>` : '');
     box._found = found.map(key);
     box._text = text.trim();
@@ -164,6 +171,7 @@
   // ---------- вопрос ----------
   function renderQuiz() {
     if (!session) return renderHome();
+    $app.classList.add('quiz');
     const s = session, k = s.keys[s.cur], q = byKey[k];
     const answered = s.answers[k] != null;
     const reveal = answered && settings.instant;
@@ -184,7 +192,7 @@
       ${nav}
       ${!small ? `<div class="row" style="margin-bottom:10px"><span class="hint">Перейти к №</span><input id="jump" type="number" min="1" max="${s.keys.length}" style="width:90px"><button class="ghost" data-act="jump">→</button>
         <button class="ghost" data-act="nextUnanswered">К первому неотвеченному</button></div>` : ''}
-      <div><span class="tag">Билет ${q.t}, вопрос ${q.n}</span>${q.topic.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</div>
+      <div class="tags"><span class="tag">Билет ${q.t}, вопрос ${q.n}</span>${q.topic.map(x => `<span class="tag">${esc(x)}</span>`).join('')}</div>
       ${q.img ? `<img class="qimg" src="${IMG + q.img}" alt="Иллюстрация к вопросу">` : ''}
       <p class="qtext">${esc(q.q)}</p>
       <div class="answers">${q.a.map((a, i) => {
@@ -193,15 +201,15 @@
         else if (answered && i === s.answers[k]) c = 'picked';
         return `<button class="ans ${c}" data-ans="${i}" ${reveal ? 'disabled' : ''}><span class="num">${LETTERS[i]}</span><span>${esc(a)}</span></button>`;
       }).join('')}</div>
-      ${reveal ? `<div class="tip"><b>${s.answers[k] === q.c ? '✓ Верно' : '✗ Неверно. Правильный ответ: ' + (q.c + 1)}</b>${esc(q.tip)}</div>` : ''}
+      ${reveal ? `<div class="tip ${s.answers[k] === q.c ? 'ok' : 'bad'}"><b class="tip-h">${s.answers[k] === q.c ? '✓ Верно' : '✗ Неверно — правильный ответ ' + (q.c + 1)}</b>${tipHtml(q.tip)}</div>` : ''}
       <div class="qfoot">
         <button class="ghost" data-act="prev" ${s.cur === 0 ? 'disabled' : ''}>← Назад</button>
         <button class="primary" data-act="next">${s.cur === s.keys.length - 1 ? 'Завершить' : (answered ? 'Далее →' : 'Пропустить →')}</button>
         <span class="grow"></span>
-        <button class="ghost" data-act="toHome">Пауза (на главную)</button>
+        <button class="ghost" data-act="toHome" title="Прогресс сохранится — можно продолжить позже">Пауза</button>
         <button class="ghost" data-act="finish">Завершить тест</button>
       </div>
-      <p class="hint">Клавиши: 1–5 — ответ, Enter/→ — далее, ← — назад.</p>
+      <p class="hint keys">Клавиши: 1–5 — ответ, Enter/→ — далее, ← — назад.</p>
     </div>`;
     window.scrollTo({ top: 0 });
   }
@@ -257,6 +265,7 @@
   function missesOf(res) { return res.items.filter(x => x.status !== 'верно'); }
 
   function renderResult(res) {
+    $app.classList.add('quiz');
     const pct = res.total ? Math.round(res.correct / res.total * 100) : 0;
     const misses = missesOf(res);
     $app.innerHTML = `<div class="card">
@@ -280,7 +289,7 @@
         ${q.img ? `<img src="${IMG + q.img}" alt="">` : ''}
         <div class="your">${x.status === 'пропущен' ? '— вопрос пропущен' : '✗ Ваш ответ: ' + esc(q.a[x.your])}</div>
         <div class="right">✓ Правильно: ${esc(q.a[q.c])}</div>
-        <div class="tip">${esc(q.tip)}</div></div>`; }).join('')}
+        <div class="tip">${tipHtml(q.tip)}</div></div>`; }).join('')}
     </div>
     <div class="card"><h2>Текст для чата</h2><textarea readonly>${esc(chatText(res))}</textarea></div>`;
     $app._res = res;
