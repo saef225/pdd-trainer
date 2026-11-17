@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Билеты ПДД — тренажёр</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <button class="brand" id="homeBtn" title="На главную">ПДД <span>800 вопросов · категория A, B</span></button>
+  <div class="top-right">
+    <span id="sendStatus" class="send-status"></span>
+    <button class="ghost" id="settingsBtn">⚙ Настройки</button>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<dialog id="settingsDlg">
+  <form method="dialog" class="dlg">
+    <h2>Настройки</h2>
+    <label>Ваше имя (попадёт в таблицу)
+      <input id="setName" type="text" placeholder="Например, Иван" maxlength="60">
+    </label>
+    <label>Своя Google Таблица (необязательно)
+      <input id="setUrl" type="url" placeholder="Пусто — пишем в общую таблицу">
+    </label>
+    <label class="check"><input id="setAuto" type="checkbox"> Отправлять результат в таблицу автоматически</label>
+    <label class="check"><input id="setInstant" type="checkbox" checked> Показывать правильный ответ сразу</label>
+    <p class="hint">По умолчанию результаты всех пользователей пишутся в одну общую таблицу. Свою можно подключить по инструкции в репозитории (папка google-apps-script).</p>
+    <div class="row">
+      <button type="button" class="ghost" id="testSend">Проверить связь</button>
+      <span class="grow"></span>
+      <button value="cancel" class="ghost">Отмена</button>
+      <button value="ok" id="saveSettings" class="primary">Сохранить</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast"></div>
+
+<script src="config.js"></script>
+<script src="data/questions.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
