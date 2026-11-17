@@ -48,6 +48,8 @@ function doPost(e) {
     var r = att.getLastRow();
     att.getRange(r, 9).setNumberFormat('0%');
     att.getRange(r, 10).setBackground(d.passed ? '#d9f2e3' : '#fbe1e1');
+    att.getRange(r, 13).setWrapStrategy(SpreadsheetApp.WrapStrategy.CLIP);
+    att.setRowHeightsForced(r, 1, 21);   // многострочный «Текст для чата» не раздувает строку
 
     if (mistakes.length) {
       var ms = sheet_(ss, SHEETS.mistakes);
@@ -87,9 +89,11 @@ function sheet_(ss, cfg) {
 function ensureSummary_(ss) {
   if (ss.getSheetByName('Частые ошибки')) return;
   var sh = ss.insertSheet('Частые ошибки');
-  sh.getRange('A1').setFormula(
-    "=QUERY('Ошибки'!A:M, \"select D, E, F, H, J, K, count(A) where D is not null group by D, E, F, H, J, K order by count(A) desc label D 'Билет', E 'Вопрос №', F 'Тема', H 'Вопрос', J 'Правильный ответ', K 'Пояснение', count(A) 'Сколько раз ошибся'\", 1)"
-  );
+  var q = "select D, E, F, H, J, K, count(A) where D is not null group by D, E, F, H, J, K order by count(A) desc " +
+          "label D 'Билет', E 'Вопрос №', F 'Тема', H 'Вопрос', J 'Правильный ответ', K 'Пояснение', count(A) 'Сколько раз ошибся'";
+  // разделитель аргументов зависит от локали таблицы: «,» (en) или «;» (ru и др.)
+  var sep = /^(en|ja|zh|ko|th|he|hi)/.test(ss.getSpreadsheetLocale()) ? ',' : ';';
+  sh.getRange('A1').setFormula("=QUERY('Ошибки'!A:M" + sep + ' "' + q + '"' + sep + ' 1)');
   sh.setFrozenRows(1);
   sh.setColumnWidth(4, 380); sh.setColumnWidth(5, 220); sh.setColumnWidth(6, 420);
 }
